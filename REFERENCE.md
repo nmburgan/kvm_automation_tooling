@@ -10,6 +10,7 @@
 
 ### Functions
 
+* [`kvm_automation_tooling::build_artifact_path`](#kvm_automation_tooling--build_artifact_path): Returns the path of an openvox build artifact package for a platform.
 * [`kvm_automation_tooling::calculate_wait_for_ip_timeout`](#kvm_automation_tooling--calculate_wait_for_ip_timeout): Calculates the timeout for waiting for an IP address to be assigned to a VM.  If any of the VMs are using the qemu domain type or if any of t
 * [`kvm_automation_tooling::fill_vm_spec`](#kvm_automation_tooling--fill_vm_spec): Expand a VM specification hash by filling in defaults from a given Hash.
 * [`kvm_automation_tooling::generate_terraform_vm_spec_set`](#kvm_automation_tooling--generate_terraform_vm_spec_set): Transforms the array of vm specifications received by the plan into a map of terraform objects (hashes) keyed by a unique "$role.$hostname.$p
@@ -72,6 +73,75 @@ ATM this is just a placeholder for the module so that rspec-puppet can
 get_module_name and setup the spec/fixtures/modules link correctly.
 
 ## Functions
+
+### <a name="kvm_automation_tooling--build_artifact_path"></a>`kvm_automation_tooling::build_artifact_path`
+
+Type: Puppet Language
+
+The path is relative to a directory laid out like the build artifacts
+server, as `<package directory>/<version>/<package file>`. The names
+follow set_artifacts_package_url() in openvox_bootstrap's
+files/common.sh.
+
+#### Examples
+
+##### An agent package for Ubuntu 24.04
+
+```puppet
+kvm_automation_tooling::build_artifact_path('openvox-agent', '8.29.0', 'ubuntu-2404-amd64')
+# => 'openvox-agent/8.29.0/openvox-agent_8.29.0-1+ubuntu24.04_amd64.deb'
+```
+
+##### A server package for Rocky 9
+
+```puppet
+kvm_automation_tooling::build_artifact_path('openvox-server', '8.17.0', 'rocky-9-x86_64')
+# => 'openvox-server/8.17.0/openvox-server-8.17.0-1.el9.noarch.rpm'
+```
+
+#### `kvm_automation_tooling::build_artifact_path(String[1] $package, String[1] $version, Pattern[/\A(almalinux|rocky|debian|ubuntu)-[0-9]+-(x86_64|amd64|aarch64|arm64)\z/] $platform)`
+
+The path is relative to a directory laid out like the build artifacts
+server, as `<package directory>/<version>/<package file>`. The names
+follow set_artifacts_package_url() in openvox_bootstrap's
+files/common.sh.
+
+Returns: `Any` The path of the package file within the artifacts directory.
+
+##### Examples
+
+###### An agent package for Ubuntu 24.04
+
+```puppet
+kvm_automation_tooling::build_artifact_path('openvox-agent', '8.29.0', 'ubuntu-2404-amd64')
+# => 'openvox-agent/8.29.0/openvox-agent_8.29.0-1+ubuntu24.04_amd64.deb'
+```
+
+###### A server package for Rocky 9
+
+```puppet
+kvm_automation_tooling::build_artifact_path('openvox-server', '8.17.0', 'rocky-9-x86_64')
+# => 'openvox-server/8.17.0/openvox-server-8.17.0-1.el9.noarch.rpm'
+```
+
+##### `package`
+
+Data type: `String[1]`
+
+The name of the package.
+
+##### `version`
+
+Data type: `String[1]`
+
+The version of the package.
+
+##### `platform`
+
+Data type: `Pattern[/\A(almalinux|rocky|debian|ubuntu)-[0-9]+-(x86_64|amd64|aarch64|arm64)\z/]`
+
+The platform string of the target, as returned by
+kvm_automation_tooling::platform().
 
 ### <a name="kvm_automation_tooling--calculate_wait_for_ip_timeout"></a>`kvm_automation_tooling::calculate_wait_for_ip_timeout`
 
@@ -772,6 +842,10 @@ Keys:
   or to download and install a pre-release openvox_version package
   from the openvox_artifacts_url for dev testing.
 - openvox_artifacts_url: The URL to the OpenVox artifacts server.
+- openvox_artifacts_dir: A directory on the controller laid out like
+  the OpenVox artifacts server. When set, the pre-release package is
+  uploaded from it to the targets instead of downloaded from the
+  openvox_artifacts_url.
 
 Alias of
 
@@ -781,6 +855,7 @@ Struct[{
   Optional[openvox_collection]    => Kvm_automation_tooling::Openvox_collection,
   Optional[openvox_released]      => Boolean,
   Optional[openvox_artifacts_url] => Optional[Stdlib::HTTPUrl],
+  Optional[openvox_artifacts_dir] => Optional[Stdlib::Absolutepath],
 }]
 ```
 

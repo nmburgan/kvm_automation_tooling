@@ -19,6 +19,7 @@ plan kvm_automation_tooling::subplans::install_component(
   $released = $install_params['openvox_released']
   $version = $install_params['openvox_version']
   $collection = $install_params['openvox_collection']
+  $artifacts_dir = $install_params['openvox_artifacts_dir']
 
   out::message("Installing ${package} ${version} (${collection})")
 
@@ -33,6 +34,31 @@ plan kvm_automation_tooling::subplans::install_component(
         'collection'   => $collection,
         '_catch_errors' => true,
       )
+      kvm_automation_tooling::test_results("Error installing ${package}", $install_results)
+    }
+  } elsif $artifacts_dir =~ NotUndef {
+    # Targets can't read a directory on the controller, so upload each
+    # target's package to it and install that file.
+    $package_files = get_targets($targets).reduce({}) |$files, $target| {
+      $path = kvm_automation_tooling::build_artifact_path($package, $version, $target.vars['platform'])
+      $package_file = "/tmp/${path.split('/')[-1]}"
+      log::debug("Uploading ${artifacts_dir}/${path} to ${package_file} on ${target.name}")
+      upload_file("${artifacts_dir}/${path}", $package_file, $target)
+      $files + { $target.name => $package_file }
+    }
+    # Loop in case of package manager locks from another process.
+    $installed = ctrl::do_until(limit => 5, interval => 10) || {
+      $install_results = run_task_with(
+        'openvox_bootstrap::install_build_artifact',
+        $targets,
+        '_catch_errors' => true,
+      ) |$target| {
+        {
+          'package'            => $package,
+          'version'            => $version,
+          'local_package_file' => $package_files[$target.name],
+        }
+      }
       kvm_automation_tooling::test_results("Error installing ${package}", $install_results)
     }
   } else {

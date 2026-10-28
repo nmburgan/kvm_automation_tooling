@@ -113,6 +113,62 @@ describe 'plan: kvm_automation_tooling::subplans::install_component' do
 
       expect($results.ok?).to(eq(true), $results.value.to_s)
     end
+
+    context 'with a directory on the controller' do
+      let(:artifacts_dir) { Dir.mktmpdir }
+      let(:rpm) { 'openvox-agent-8.1.1-1.el9.x86_64.rpm' }
+      let(:deb) { 'openvox-agent_8.1.1-1+debian13_amd64.deb' }
+
+      def inventory_data
+        {
+          'targets' => [
+            { 'name' => 'agent', 'vars' => { 'platform' => 'almalinux-9-x86_64' } },
+            { 'name' => 'primary', 'vars' => { 'platform' => 'debian-13-amd64' } },
+          ],
+        }
+      end
+
+      around(:each) do |example|
+        # upload_file checks that its source exists.
+        FileUtils.mkdir_p("#{artifacts_dir}/openvox-agent/8.1.1")
+        FileUtils.touch(["#{artifacts_dir}/openvox-agent/8.1.1/#{rpm}", "#{artifacts_dir}/openvox-agent/8.1.1/#{deb}"])
+        example.run
+      ensure
+        FileUtils.remove_entry_secure(artifacts_dir)
+      end
+
+      it 'uploads each target its own package and installs that file' do
+        install_params['openvox_version'] = '8.1.1'
+        install_params['openvox_artifacts_dir'] = artifacts_dir
+        plan_params['targets'] = ['agent', 'primary']
+
+        expect_out_message
+        { 'agent' => rpm, 'primary' => deb }.each do |target, file|
+          expect_upload("#{artifacts_dir}/openvox-agent/8.1.1/#{file}")
+            .with_destination("/tmp/#{file}")
+            .with_targets(target)
+          expect_task('openvox_bootstrap::install_build_artifact')
+            .with_targets(target)
+            .with_params(
+              {
+                'package' => 'openvox-agent',
+                'version' => '8.1.1',
+                'artifacts_source' => 'https://artifacts.voxpupuli.org',
+                'local_package_file' => "/tmp/#{file}",
+                '_catch_errors' => true,
+              }
+            )
+        end
+        expect_task('package')
+
+        $results = run_plan(
+          'kvm_automation_tooling::subplans::install_component',
+          plan_params
+        )
+
+        expect($results.ok?).to(eq(true), $results.value.to_s)
+      end
+    end
   end
 
   it 'fails for invalid install parameters' do

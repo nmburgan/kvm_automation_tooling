@@ -13,9 +13,14 @@
 #   or to download and install a pre-release openvox_version package
 #   from the openvox_artifacts_url for dev testing.
 # - openvox_artifacts_url: The URL to the OpenVox artifacts server.
+# - openvox_artifacts_dir: A directory on the controller laid out like
+#   the OpenVox artifacts server. When set, the pre-release package is
+#   uploaded from it to the targets instead of downloaded from the
+#   openvox_artifacts_url.
 type Kvm_automation_tooling::Openvox_install_params = Struct[{
   Optional[openvox_version]       => Kvm_automation_tooling::Openvox_version,
   Optional[openvox_collection]    => Kvm_automation_tooling::Openvox_collection,
   Optional[openvox_released]      => Boolean,
   Optional[openvox_artifacts_url] => Optional[Stdlib::HTTPUrl],
+  Optional[openvox_artifacts_dir] => Optional[Stdlib::Absolutepath],
 }]
