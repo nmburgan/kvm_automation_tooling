@@ -168,6 +168,48 @@ describe 'plan: kvm_automation_tooling::subplans::install_component' do
 
         expect($results.ok?).to(eq(true), $results.value.to_s)
       end
+
+      it 'downloads a package missing from the directory from the artifacts server' do
+        FileUtils.rm("#{artifacts_dir}/openvox-agent/8.1.1/#{deb}")
+        install_params['openvox_version'] = '8.1.1'
+        install_params['openvox_artifacts_dir'] = artifacts_dir
+        install_params['openvox_artifacts_url'] = 'https://custom.artifacts.source'
+        plan_params['targets'] = ['agent', 'primary']
+
+        expect_out_message
+        expect_upload("#{artifacts_dir}/openvox-agent/8.1.1/#{rpm}")
+          .with_destination("/tmp/#{rpm}")
+          .with_targets('agent')
+        expect_task('openvox_bootstrap::install_build_artifact')
+          .with_targets('agent')
+          .with_params(
+            {
+              'package' => 'openvox-agent',
+              'version' => '8.1.1',
+              'artifacts_source' => 'https://custom.artifacts.source',
+              'local_package_file' => "/tmp/#{rpm}",
+              '_catch_errors' => true,
+            }
+          )
+        expect_task('openvox_bootstrap::install_build_artifact')
+          .with_targets('primary')
+          .with_params(
+            {
+              'package' => 'openvox-agent',
+              'version' => '8.1.1',
+              'artifacts_source' => 'https://custom.artifacts.source',
+              '_catch_errors' => true,
+            }
+          )
+        expect_task('package')
+
+        $results = run_plan(
+          'kvm_automation_tooling::subplans::install_component',
+          plan_params
+        )
+
+        expect($results.ok?).to(eq(true), $results.value.to_s)
+      end
     end
   end
 

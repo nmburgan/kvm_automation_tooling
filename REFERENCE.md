@@ -843,9 +843,9 @@ Keys:
   from the openvox_artifacts_url for dev testing.
 - openvox_artifacts_url: The URL to the OpenVox artifacts server.
 - openvox_artifacts_dir: A directory on the controller laid out like
-  the OpenVox artifacts server. When set, the pre-release package is
-  uploaded from it to the targets instead of downloaded from the
-  openvox_artifacts_url.
+  the OpenVox artifacts server. When set, a pre-release package found
+  there is uploaded to the targets instead of downloaded from the
+  openvox_artifacts_url. A package that isn't there is still downloaded.
 
 Alias of
 
